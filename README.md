@@ -6,6 +6,23 @@ The user interface uses a **Carbon Slate & Electric Amber** design system (Midni
 
 ---
 
+## 📸 Screenshots
+
+<table>
+  <tr>
+    <td><img src="screenshots/slate_dashboard.png" width="200"/><br/><b>Dashboard</b></td>
+    <td><img src="screenshots/slate_editor.png" width="200"/><br/><b>Note Editor</b></td>
+    <td><img src="screenshots/slate_mindmap.png" width="200"/><br/><b>Mind Map</b></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/slate_voice.png" width="200"/><br/><b>Voice Recorder</b></td>
+    <td><img src="screenshots/slate_analytics.png" width="200"/><br/><b>Analytics</b></td>
+    <td></td>
+  </tr>
+</table>
+
+---
+
 ## 🚀 Key Features
 
 ### 1. Home Dashboard
