@@ -46,7 +46,6 @@ fun VoiceRecorderScreen(onNoteClick: (String) -> Unit) {
         "Saved voice memo as Note #9: 'Voice Note Database Optimization'."
     )
 
-    // Pulsing animation for mic button
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -58,7 +57,6 @@ fun VoiceRecorderScreen(onNoteClick: (String) -> Unit) {
         label = "pulseScale"
     )
 
-    // Animate wave height offsets
     var waveTick by remember { mutableStateOf(0) }
     LaunchedEffect(isRecording) {
         if (isRecording) {
@@ -78,48 +76,40 @@ fun VoiceRecorderScreen(onNoteClick: (String) -> Unit) {
                 transcriptionText += (if (transcriptionText.isEmpty()) "" else "\n") + sentence
             }
             isRecording = false
-            savedNoteId = "5" // Links to Client Sync note or similar
+            savedNoteId = "5" 
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Voice Memo AI", fontWeight = FontWeight.Bold, fontSize = 22.sp) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    Box(modifier = Modifier.fillMaxSize().background(SlateBackground)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Waveform visualizer
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Text("Voice Memo", style = Typography.displayMedium, color = SlateTextPrimary, modifier = Modifier.align(Alignment.Start))
+
+            // Waveform visualizer (Glassmorphism)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(SlateSurface)
-                    .border(1.dp, SlateBorder, RoundedCornerShape(24.dp))
-                    .padding(16.dp),
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(SlateGlass)
+                    .border(1.dp, SlateGlassBorder, RoundedCornerShape(32.dp))
+                    .padding(20.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (isRecording) {
-                    AudioWaveform(tick = waveTick, color = SlateSecondary)
+                    AudioWaveform(tick = waveTick, color = SlatePrimary)
                 } else {
                     Text(
-                        text = "Tap the microphone to start recording dictation",
-                        color = SlateTextTertiary,
-                        fontSize = 14.sp,
+                        text = "Tap the microphone to start recording",
+                        color = SlateTextSecondary,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -131,48 +121,40 @@ fun VoiceRecorderScreen(onNoteClick: (String) -> Unit) {
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(vertical = 24.dp),
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
-                shape = RoundedCornerShape(24.dp)
+                colors = CardDefaults.cardColors(containerColor = SlateGlass),
+                shape = RoundedCornerShape(32.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, SlateGlassBorder)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(20.dp)
+                        .padding(24.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = SlatePrimary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Live AI Transcription",
-                            color = SlatePrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
+                        Icon(Icons.Default.AutoAwesome, null, tint = SlatePrimary, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Live AI Transcription", color = SlatePrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     Text(
                         text = if (transcriptionText.isEmpty()) "Transcript will stream here..." else transcriptionText,
                         color = if (transcriptionText.isEmpty()) SlateTextTertiary else SlateTextPrimary,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp,
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp,
                         modifier = Modifier.weight(1f)
                     )
                     
                     if (savedNoteId != null) {
                         Button(
                             onClick = { onNoteClick(savedNoteId!!) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = SlateAccentEmerald)
+                            modifier = Modifier.fillMaxWidth().height(56.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SlatePrimary),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
-                            Text("Open Saved Note", color = SlateBackground, fontWeight = FontWeight.Bold)
+                            Text("Open Saved Note", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                     }
                 }
@@ -181,39 +163,34 @@ fun VoiceRecorderScreen(onNoteClick: (String) -> Unit) {
             // Microphone action button
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier.padding(bottom = 32.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(110.dp)
                         .border(
                             width = 4.dp * pulseScale,
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    if (isRecording) SlateSecondary else SlatePrimary,
-                                    Color.Transparent
-                                )
-                            ),
+                            brush = Brush.radialGradient(listOf(if (isRecording) SlateSecondary else SlatePrimary, Color.Transparent)),
                             shape = CircleShape
                         )
                         .clip(CircleShape)
-                        .background(if (isRecording) SlateSecondary else SlateSurface)
+                        .background(if (isRecording) SlateSecondary else SlateSurfaceVariant)
                         .clickable { isRecording = !isRecording },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (isRecording) Icons.Default.MicOff else Icons.Default.Mic,
                         contentDescription = "Record microphone button",
-                        tint = if (isRecording) SlateBackground else SlateSecondary,
-                        modifier = Modifier.size(42.dp)
+                        tint = if (isRecording) SlateBackground else SlatePrimary,
+                        modifier = Modifier.size(48.dp)
                     )
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = if (isRecording) "Recording... Tap to Pause" else "Tap Mic to Dictate",
                     color = if (isRecording) SlateSecondary else SlateTextSecondary,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                    fontSize = 15.sp
                 )
             }
         }
@@ -226,28 +203,34 @@ fun AudioWaveform(tick: Int, color: Color) {
         val width = size.width
         val height = size.height
         val centerY = height / 2
-        val columnWidth = 15f
-        val gap = 10f
+        val columnWidth = 12f
+        val gap = 12f
         val totalCols = (width / (columnWidth + gap)).toInt()
 
         for (i in 0 until totalCols) {
-            // Compute a simulated height based on sine waves and tick
             val angle = i.toFloat() * 0.3f + tick * 0.4f
             val baseHeight = height * 0.4f
             val simulatedAmplitude = baseHeight * (sin(angle) * 0.6f + 0.4f)
             
-            // Random jitter to make it look realistic
             val jitter = if (i % 2 == 0) 1.2f else 0.7f
             val barHeight = (simulatedAmplitude * jitter).coerceIn(10f, height * 0.9f)
             
             val x = i * (columnWidth + gap)
             val y = centerY - barHeight / 2
 
+            // Base glow
+            drawRoundRect(
+                color = color.copy(alpha = 0.3f),
+                topLeft = Offset(x - 2f, y - 2f),
+                size = Size(columnWidth + 4f, barHeight + 4f),
+                cornerRadius = CornerRadius(8f, 8f)
+            )
+            // Core
             drawRoundRect(
                 color = color,
                 topLeft = Offset(x, y),
                 size = Size(columnWidth, barHeight),
-                cornerRadius = CornerRadius(5f, 5f)
+                cornerRadius = CornerRadius(6f, 6f)
             )
         }
     }

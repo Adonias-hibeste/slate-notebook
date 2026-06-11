@@ -12,24 +12,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.slate.data.model.MockData
-import com.example.slate.data.model.Note
 import com.example.slate.theme.*
 import com.example.slate.data.network.CopilotService
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
 
 data class ChatMessage(val sender: String, val text: String)
 
@@ -42,72 +41,71 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
     
     val currentTags = remember { 
         mutableStateListOf<String>().apply {
-            note?.tags?.let { addAll(it) } ?: addAll(listOf("notes", "new"))
+            note?.tags?.let { addAll(it) } ?: addAll(listOf("notes", "draft"))
         }
     }
 
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val copilotService = remember { CopilotService() }
     
     var showBottomSheet by remember { mutableStateOf(false) }
-    var activeTab by remember { mutableStateOf(0) } // 0: AI Actions, 1: AI Chat
+    var activeTab by remember { mutableStateOf(0) }
 
-    // AI Processing states
     var isProcessing by remember { mutableStateOf(false) }
     var aiResult by remember { mutableStateOf<String?>(null) }
     
-    // AI Chat states
     var userMessage by remember { mutableStateOf("") }
     val chatMessages = remember {
         mutableStateListOf(
-            ChatMessage("AI", "Hi, I'm Slate Copilot powered by Gemini! Ask me anything about your current note.")
+            ChatMessage("AI", "Hi Adonias, I'm your Copilot. How can I help refine this note?")
         )
     }
     var isAiTyping by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Edit Note", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = SlateTextPrimary)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* Save action */ onBackClick() }) {
-                        Icon(Icons.Default.Check, contentDescription = "Save", tint = SlateSecondary)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showBottomSheet = true },
-                containerColor = SlateSecondary,
-                contentColor = SlateBackground,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.AutoAwesome, contentDescription = "AI Assistant")
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    Box(modifier = Modifier.fillMaxSize().background(SlateBackground)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+                .padding(horizontal = 20.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            // Note Title
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Transparent Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(SlateGlass)
+                        .border(1.dp, SlateGlassBorder, CircleShape)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = SlateTextPrimary)
+                }
+                IconButton(
+                    onClick = { onBackClick() },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(SlatePrimary)
+                ) {
+                    Icon(Icons.Default.Check, contentDescription = "Save", tint = Color.Black)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Big Typography Title
             TextField(
                 value = title,
                 onValueChange = { title = it },
-                placeholder = { Text("Note Title", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = SlateTextTertiary) },
+                placeholder = { Text("Untitled", style = Typography.displayMedium, color = SlateTextTertiary) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -116,13 +114,13 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                     focusedTextColor = SlateTextPrimary,
                     unfocusedTextColor = SlateTextPrimary
                 ),
-                textStyle = LocalTextStyle.current.copy(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                textStyle = Typography.displayMedium,
                 modifier = Modifier.fillMaxWidth()
             )
             
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
-            // Inline tags editor
+            // Sleek Pills for Tags
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -131,36 +129,33 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                 items(currentTags) { tag ->
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(SlateSurfaceVariant)
-                            .border(1.dp, SlateBorder, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                             .clickable { currentTags.remove(tag) }
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "#$tag", color = SlateSecondary, fontSize = 12.sp)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Icon(Icons.Default.Close, contentDescription = "Delete Tag", tint = SlateTextSecondary, modifier = Modifier.size(10.dp))
+                            Text(text = "#$tag", color = SlateTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(Icons.Default.Close, contentDescription = "Delete", tint = SlateTextTertiary, modifier = Modifier.size(12.dp))
                         }
                     }
                 }
                 item {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(SlateSurface)
-                            .border(1.dp, SlateBorder, RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.Transparent)
+                            .border(1.dp, SlateGlassBorder, RoundedCornerShape(16.dp))
                             .clickable {
-                                val newTags = listOf("architecture", "todo", "meeting", "code", "draft")
+                                val newTags = listOf("architecture", "meeting", "code")
                                 val randomTag = newTags.random()
-                                if (randomTag !in currentTags) {
-                                    currentTags.add(randomTag)
-                                }
+                                if (randomTag !in currentTags) currentTags.add(randomTag)
                             }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Tag", tint = SlatePrimary, modifier = Modifier.size(12.dp))
+                            Icon(Icons.Default.Add, contentDescription = "Add", tint = SlatePrimary, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(text = "Add Tag", color = SlateTextSecondary, fontSize = 12.sp)
                         }
@@ -168,13 +163,50 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // AI Result Card (Glass)
+            if (aiResult != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
+                    colors = CardDefaults.cardColors(containerColor = SlateGlass),
+                    shape = RoundedCornerShape(24.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SlateGlassBorder)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = SlatePrimary, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Copilot Suggestion", color = SlatePrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(aiResult!!, color = SlateTextPrimary, fontSize = 15.sp, lineHeight = 22.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                            TextButton(onClick = { aiResult = null }) {
+                                Text("Dismiss", color = SlateTextSecondary)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = { 
+                                    content += "\n\n" + aiResult
+                                    aiResult = null 
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = SlatePrimary, contentColor = Color.Black),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Insert", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
             
-            // Note editor main content
+            // Content Editor
             TextField(
                 value = content,
                 onValueChange = { content = it },
-                placeholder = { Text("Start typing...", fontSize = 16.sp, color = SlateTextTertiary) },
+                placeholder = { Text("Start typing your thoughts...", style = Typography.bodyLarge, color = SlateTextTertiary) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -183,107 +215,74 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                     focusedTextColor = SlateTextPrimary,
                     unfocusedTextColor = SlateTextPrimary
                 ),
-                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, lineHeight = 24.sp),
+                textStyle = Typography.bodyLarge.copy(lineHeight = 28.sp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .defaultMinSize(minHeight = 400.dp)
             )
 
-            // Dynamic rich-text formatting toolbar overlay above keyboard
+            Spacer(modifier = Modifier.height(100.dp))
+        }
+
+        // Floating Dynamic Island Toolbar
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp, start = 20.dp, end = 20.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(32.dp))
+                .background(SlateGlass)
+                .border(1.dp, SlateGlassBorder, RoundedCornerShape(32.dp))
+                .padding(vertical = 12.dp, horizontal = 24.dp)
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(SlateSurface)
-                    .border(1.dp, SlateBorder, RoundedCornerShape(12.dp))
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* Simulate format */ }) {
+                IconButton(onClick = { }) {
                     Icon(Icons.Default.FormatBold, contentDescription = "Bold", tint = SlateTextSecondary)
                 }
-                IconButton(onClick = { /* Simulate list */ }) {
-                    Icon(Icons.Default.FormatListBulleted, contentDescription = "Bullet List", tint = SlateTextSecondary)
+                IconButton(onClick = { }) {
+                    Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = "List", tint = SlateTextSecondary)
                 }
-                IconButton(onClick = {
-                    content += "\n- "
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Item", tint = SlateTextSecondary)
+                IconButton(onClick = { content += " [Dictated] " }) {
+                    Icon(Icons.Default.Mic, contentDescription = "Dictate", tint = SlateTextPrimary)
                 }
-                IconButton(onClick = {
-                    // Quick dictation simulation inside editor
-                    content += " [Dictated: Sync with Adonias completed.]"
-                }) {
-                    Icon(Icons.Default.Mic, contentDescription = "Quick Voice dictation", tint = SlateSecondary)
-                }
-                IconButton(onClick = { showBottomSheet = true }) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = "AI Panel", tint = SlatePrimary)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Inline AI Result Card
-            if (aiResult != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = SlateSurfaceVariant),
-                    shape = RoundedCornerShape(16.dp),
-                    border = borderStroke(SlateBorder)
+                IconButton(
+                    onClick = { showBottomSheet = true },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(SlatePrimary)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = SlatePrimary, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("AI Copilot Suggestion", color = SlatePrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(aiResult!!, color = SlateTextPrimary, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                            TextButton(onClick = { aiResult = null }) {
-                                Text("Dismiss", color = SlateTextSecondary)
-                            }
-                            Button(
-                                onClick = { 
-                                    content += "\n\n" + aiResult
-                                    aiResult = null 
-                                    note?.let {
-                                        MockData.notes.find { n -> n.id == it.id }?.let { original ->
-                                            // Mock copy update
-                                        }
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = SlatePrimary)
-                            ) {
-                                Text("Insert")
-                            }
-                        }
-                    }
+                    Icon(Icons.Default.AutoAwesome, contentDescription = "AI", tint = Color.Black)
                 }
             }
         }
         
-        // AI Bottom Sheet Drawer
+        // AI Bottom Sheet (Sleek Dark Mode)
         if (showBottomSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showBottomSheet = false },
                 sheetState = sheetState,
-                containerColor = SlateSurface
+                containerColor = SlateSurface,
+                dragHandle = { BottomSheetDefaults.DragHandle(color = SlateTextSecondary) }
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
-                    // Drawer Header Tabs
                     TabRow(
                         selectedTabIndex = activeTab,
                         containerColor = SlateSurface,
                         contentColor = SlateTextPrimary,
                         indicator = { tabPositions ->
-                            TabRowDefaults.Indicator(
-                                modifier = Modifier.tabIndicatorOffset(tabPositions[activeTab]),
-                                color = SlatePrimary
-                            )
-                        }
+                            if (activeTab < tabPositions.size) {
+                                TabRowDefaults.SecondaryIndicator(
+                                    modifier = Modifier.tabIndicatorOffset(tabPositions[activeTab]),
+                                    color = SlatePrimary
+                                )
+                            }
+                        },
+                        divider = { HorizontalDivider(color = SlateBorder) }
                     ) {
                         Tab(
                             selected = activeTab == 0,
@@ -297,16 +296,20 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     if (activeTab == 0) {
-                        // AI ACTIONS TAB
-                        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                             if (isProcessing) {
-                                CircularProgressIndicator(color = SlatePrimary, modifier = Modifier.align(Alignment.CenterHorizontally).padding(32.dp))
-                                Text("AI Assistant processing notes...", color = SlatePrimary, modifier = Modifier.align(Alignment.CenterHorizontally))
+                                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        CircularProgressIndicator(color = SlatePrimary)
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text("Copilot is analyzing...", color = SlateTextSecondary)
+                                    }
+                                }
                             } else {
-                                AIOptionRow(icon = Icons.Default.AutoAwesome, title = "Summarize Note") {
+                                AIOptionRow(Icons.Default.AutoAwesome, "Summarize Note") {
                                     scope.launch {
                                         isProcessing = true
                                         val result = copilotService.summarizeNote(content)
@@ -315,7 +318,7 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                                         aiResult = result
                                     }
                                 }
-                                AIOptionRow(icon = Icons.Default.FormatListBulleted, title = "Extract Action Items") {
+                                AIOptionRow(Icons.AutoMirrored.Filled.FormatListBulleted, "Extract Action Items") {
                                      scope.launch {
                                         isProcessing = true
                                         val result = copilotService.extractActionItems(content)
@@ -324,7 +327,7 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                                         aiResult = result
                                     }
                                 }
-                                AIOptionRow(icon = Icons.Default.Translate, title = "Translate to Spanish") {
+                                AIOptionRow(Icons.Default.Translate, "Translate to Spanish") {
                                     scope.launch {
                                         isProcessing = true
                                         val result = copilotService.translateToSpanish(content)
@@ -336,23 +339,21 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                             }
                         }
                     } else {
-                        // AI COPILOT CHAT TAB
+                        // AI Chat
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(320.dp)
-                                .padding(horizontal = 20.dp),
+                                .height(400.dp)
+                                .padding(horizontal = 24.dp),
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Chat messages list
-                            val chatScrollState = rememberScrollState()
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth()
-                                    .verticalScroll(chatScrollState)
+                                    .verticalScroll(rememberScrollState())
                                     .padding(vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 chatMessages.forEach { msg ->
                                     val isAi = msg.sender == "AI"
@@ -364,53 +365,50 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                                             modifier = Modifier
                                                 .clip(
                                                     RoundedCornerShape(
-                                                        topStart = 12.dp,
-                                                        topEnd = 12.dp,
-                                                        bottomStart = if (isAi) 0.dp else 12.dp,
-                                                        bottomEnd = if (isAi) 12.dp else 0.dp
+                                                        topStart = 20.dp,
+                                                        topEnd = 20.dp,
+                                                        bottomStart = if (isAi) 4.dp else 20.dp,
+                                                        bottomEnd = if (isAi) 20.dp else 4.dp
                                                     )
                                                 )
                                                 .background(if (isAi) SlateSurfaceVariant else SlatePrimary)
-                                                .padding(10.dp)
-                                                .widthIn(max = 240.dp)
+                                                .padding(16.dp)
+                                                .widthIn(max = 280.dp)
                                         ) {
                                             Text(
                                                 text = msg.text,
-                                                color = if (isAi) SlateTextPrimary else SlateBackground,
-                                                fontSize = 13.sp
+                                                color = if (isAi) SlateTextPrimary else Color.Black,
+                                                fontSize = 15.sp,
+                                                lineHeight = 22.sp
                                             )
                                         }
                                     }
                                 }
-                                
                                 if (isAiTyping) {
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                                        Text("AI is typing...", color = SlateSecondary, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp))
-                                    }
+                                    Text("Copilot is typing...", color = SlateTextTertiary, fontSize = 13.sp, modifier = Modifier.padding(start = 16.dp))
                                 }
                             }
 
-                            // Message input row
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
+                                    .padding(vertical = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 TextField(
                                     value = userMessage,
                                     onValueChange = { userMessage = it },
-                                    placeholder = { Text("Ask about: '$title'", fontSize = 13.sp, color = SlateTextTertiary) },
+                                    placeholder = { Text("Ask Copilot...", color = SlateTextTertiary) },
                                     colors = TextFieldDefaults.colors(
                                         focusedContainerColor = SlateSurfaceVariant,
                                         unfocusedContainerColor = SlateSurfaceVariant,
-                                        focusedIndicatorColor = SlateSecondary,
+                                        focusedIndicatorColor = Color.Transparent,
                                         unfocusedIndicatorColor = Color.Transparent,
                                         focusedTextColor = SlateTextPrimary,
                                         unfocusedTextColor = SlateTextPrimary
                                     ),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(24.dp),
                                     singleLine = true,
                                     modifier = Modifier.weight(1f)
                                 )
@@ -422,21 +420,18 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                                             userMessage = ""
                                             isAiTyping = true
                                             scope.launch {
-                                                val answer = copilotService.copilotChat(
-                                                    noteTitle = title,
-                                                    noteContent = content,
-                                                    userQuery = query
-                                                )
+                                                val answer = copilotService.copilotChat(title, content, query)
                                                 isAiTyping = false
                                                 chatMessages.add(ChatMessage("AI", answer))
                                             }
                                         }
                                     },
                                     modifier = Modifier
+                                        .size(48.dp)
                                         .clip(CircleShape)
                                         .background(SlatePrimary)
                                 ) {
-                                    Icon(Icons.Default.Send, contentDescription = "Send message", tint = SlateBackground, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Send", tint = Color.Black)
                                 }
                             }
                         }
@@ -447,23 +442,20 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
     }
 }
 
-private fun borderStroke(color: Color) = androidx.compose.foundation.BorderStroke(1.dp, color)
-
 @Composable
 fun AIOptionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(SlateSurfaceVariant)
             .clickable { onClick() }
-            .padding(16.dp),
+            .padding(20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = SlatePrimary)
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(title, fontSize = 16.sp, color = SlateTextPrimary)
+        Icon(icon, contentDescription = null, tint = SlatePrimary, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.width(20.dp))
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SlateTextPrimary)
     }
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(16.dp))
 }
-
