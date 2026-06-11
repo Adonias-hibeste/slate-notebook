@@ -143,14 +143,22 @@ fun DashboardScreen(onNoteClick: (String) -> Unit) {
 @Composable
 fun WelcomePanel() {
     Card(
-        colors = CardDefaults.cardColors(containerColor = SlateSurface),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, SlateBorder, RoundedCornerShape(24.dp))
+            .border(1.dp, Brush.linearGradient(listOf(SlateBorder, Color.Transparent)), RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(SlateSurface, SlateBackground),
+                    start = androidx.compose.ui.geometry.Offset.Zero,
+                    end = androidx.compose.ui.geometry.Offset.Infinite
+                ),
+                shape = RoundedCornerShape(24.dp)
+            )
     ) {
         Column(
-            modifier = Modifier.padding(20.dp)
+            modifier = Modifier.padding(24.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -166,13 +174,13 @@ fun WelcomePanel() {
                     Text(
                         text = "Adonias",
                         color = SlateTextPrimary,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
@@ -185,20 +193,20 @@ fun WelcomePanel() {
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
                         tint = SlateBackground,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(20.dp))
+            Divider(color = SlateBorder.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(16.dp))
-            Divider(color = SlateBorder)
-            Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 QuickStatItem(label = "Notes", count = "8", color = SlatePrimary)
                 QuickStatItem(label = "Voice Memos", count = "4", color = SlateSecondary)
-                QuickStatItem(label = "AI Links", count = "12", color = SlateAccentPink)
+                QuickStatItem(label = "AI Links", count = "12", color = SlateAccentEmerald)
             }
         }
     }
@@ -341,12 +349,18 @@ fun NotesStaggeredGrid(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onNoteClick(note.id) }
-                    .border(1.dp, SlateBorder, RoundedCornerShape(18.dp)),
-                colors = CardDefaults.cardColors(containerColor = SlateSurface),
+                    .border(1.dp, Brush.linearGradient(listOf(SlateBorder, Color.Transparent)), RoundedCornerShape(18.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                 shape = RoundedCornerShape(18.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp)
+                    modifier = Modifier
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(SlateSurface, SlateSurfaceVariant.copy(alpha = 0.8f))
+                            )
+                        )
+                        .padding(16.dp)
                 ) {
                     // Category & AI Badges
                     Row(

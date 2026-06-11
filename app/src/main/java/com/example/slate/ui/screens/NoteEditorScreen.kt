@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.example.slate.data.model.MockData
 import com.example.slate.data.model.Note
 import com.example.slate.theme.*
+import com.example.slate.data.network.CopilotService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -47,6 +48,8 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
 
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
+    val copilotService = remember { CopilotService() }
+    
     var showBottomSheet by remember { mutableStateOf(false) }
     var activeTab by remember { mutableStateOf(0) } // 0: AI Actions, 1: AI Chat
 
@@ -58,7 +61,7 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
     var userMessage by remember { mutableStateOf("") }
     val chatMessages = remember {
         mutableStateListOf(
-            ChatMessage("AI", "Hi, I'm Slate Copilot. Ask me anything about your current note!")
+            ChatMessage("AI", "Hi, I'm Slate Copilot powered by Gemini! Ask me anything about your current note.")
         )
     }
     var isAiTyping by remember { mutableStateOf(false) }
@@ -306,28 +309,28 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                                 AIOptionRow(icon = Icons.Default.AutoAwesome, title = "Summarize Note") {
                                     scope.launch {
                                         isProcessing = true
-                                        delay(1200)
+                                        val result = copilotService.summarizeNote(content)
                                         isProcessing = false
                                         showBottomSheet = false
-                                        aiResult = "Summary: Key items revolve around product architectures, sync plans, and milestones. Actions involve optimization drafts."
+                                        aiResult = result
                                     }
                                 }
                                 AIOptionRow(icon = Icons.Default.FormatListBulleted, title = "Extract Action Items") {
                                      scope.launch {
                                         isProcessing = true
-                                        delay(1200)
+                                        val result = copilotService.extractActionItems(content)
                                         isProcessing = false
                                         showBottomSheet = false
-                                        aiResult = "- Draft final system configurations\n- Setup cloud databases\n- Schedule Adonias review check"
+                                        aiResult = result
                                     }
                                 }
                                 AIOptionRow(icon = Icons.Default.Translate, title = "Translate to Spanish") {
                                     scope.launch {
                                         isProcessing = true
-                                        delay(1200)
+                                        val result = copilotService.translateToSpanish(content)
                                         isProcessing = false
                                         showBottomSheet = false
-                                        aiResult = "Resumen: El equipo discutió la migración de la base de datos y la capacidad para el próximo trimestre."
+                                        aiResult = result
                                     }
                                 }
                             }
@@ -419,16 +422,12 @@ fun NoteEditorScreen(noteId: String, onBackClick: () -> Unit) {
                                             userMessage = ""
                                             isAiTyping = true
                                             scope.launch {
-                                                delay(1200)
+                                                val answer = copilotService.copilotChat(
+                                                    noteTitle = title,
+                                                    noteContent = content,
+                                                    userQuery = query
+                                                )
                                                 isAiTyping = false
-                                                val answer = when {
-                                                    query.contains("action", ignoreCase = true) || query.contains("todo", ignoreCase = true) -> 
-                                                        "Based on '$title', action items are: 1. Optimize cluster indexing 2. Hold sync with Adonias."
-                                                    query.contains("summary", ignoreCase = true) || query.contains("about", ignoreCase = true) ->
-                                                        "This note discusses database architectures and team priorities for engineering sync pipelines."
-                                                    else -> 
-                                                        "That's interesting. We should index this note with tags so that we can link it in the Mind Map dashboard."
-                                                }
                                                 chatMessages.add(ChatMessage("AI", answer))
                                             }
                                         }

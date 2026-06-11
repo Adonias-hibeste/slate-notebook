@@ -14,6 +14,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "GEMINI_API_KEY", "\"\"")
     }
 
     buildTypes {
@@ -29,7 +30,7 @@ android {
     buildFeatures {
       compose = true
       aidl = false
-      buildConfig = false
+      buildConfig = true
       shaders = false
     }
 
@@ -84,4 +85,7 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
   implementation(libs.androidx.navigation.compose)
   implementation(libs.androidx.compose.material.icons.extended)
+  
+  // Gemini Generative AI SDK
+  implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
 }
